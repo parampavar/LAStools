@@ -21,12 +21,15 @@ batch mode such as:
 
 lasinfo64 -i *.laz -otxt -odir ..\reports -odix _info -cores 3
 
-In addition, the lasinfo output can be provided in JSON format. To save 
+In addition, the lasinfo output can be provided in JSON or CSV format. To save 
 the output to a JSON file, use either the '-ojs' option or specify an output 
-file name with the '-o' option and the '.json' extension. The '-js' option can 
-be used to output the JSON format directly.
+file name with the '-o' option and the '.json' extension. To save 
+the output to a CSV file, use either the '-ocsv' option or specify an output 
+file name with the '-o' option and the '.csv' extension. The '-js' or '-csv' 
+options can be used to output the JSON or CSV format directly.
 
 lasinfo64 -i *.laz -ojs -js -o output_file.json
+lasinfo64 -i *.laz -ocsv -csv -o output_file.csv
 
 The tool can also be used to modify various other entries in
 the header as described below. This needs to be done with care
@@ -287,6 +290,7 @@ Further examples
 -cd                                 : compute rough approximation for covered area, density, and spacing  
 -compute_density                    : compute rough approximation for covered area, density, and spacing  
 -delete_empty                       : delete LAS files with zero points  
+-full_csv                           : outputs all information.Use only in combination with csv format
 -gps_week                           : compute the GPS week (if data is Adjusted Standard GPS time)  
 -gw                                 : compute the GPS week (if data is Adjusted Standard GPS time)  
 -histo [m] [n]                      : histogram output about [m] with step width [n]  
@@ -307,8 +311,10 @@ Further examples
 -nw                                 : don't output warnings  
 -otxt                               : output as textfile  
 -ojs                                : output as json file  
+-ocsv                               : reduced output as csv file. -nc is set by default use -full_csv for full output
 -js                                 : output in json format  
 -json                               : output in json format  
+-csv                                : reduced output in csv format. -nc is set by default use -full_csv for full output
 -progress [n]                       : report progress every [n] points  
 -proj_info [wkt] [js] [str] [epsg] [el] [datum] [cs] : get CRS representations and information of the input file: [wkt] WKT, [js] PROJJSON, [str] PROJ string or [epsg] EPSG code representation and [el] ellipsoid, [datum] datum or [cs] coordinate system information  
 -rename [n]                         : renames input file 'fusa.laz' to '[n]_123_456.laz' where 123 and 456 is the x and y header minimum value  

@@ -1114,6 +1114,32 @@ public:
     return std::string(version_buffer);
   }
 
+  /// Converts the year and day of year stored in the LAS header into a YYYY-MM-DD date or 'unknown' if the values are invalid and retuns it
+  std::string get_dayOfYear_to_date_string() {
+    if (this->file_creation_year == 0 || this->file_creation_day == 0) {
+      return "unknown";
+    }
+
+    std::tm date = {};
+    date.tm_year = this->file_creation_year - 1900;
+    date.tm_mday = this->file_creation_day;
+
+    if (std::mktime(&date) == -1) {
+      return "unknown";
+    }
+
+    char buffer[16];
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d", &date);
+    return buffer;
+  }
+
+  U64 get_number_of_point_records_uni() {
+    if (this->extended_number_of_point_records != 0) {
+      return this->extended_number_of_point_records;
+    }
+    return this->number_of_point_records;
+  }
+
   ~LASheader()
   {
     clean();

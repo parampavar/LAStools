@@ -7709,6 +7709,42 @@ const char* GeoProjectionConverter::get_coordinate_unit_description_string(bool 
   }
 }
 
+/// Returns the horizontal EPSG code (PCS or GCS) from the GeoTIFF GeoKeys in the LAS header
+U32 GeoProjectionConverter::get_geokeys_projection_epsg(LASreader* lasreader) {
+  if (lasreader == nullptr || lasreader->header.vlr_geo_keys == nullptr) return 0;
+  U32 epsg = 0;
+
+  for (int idx = 0; idx < lasreader->header.vlr_geo_keys->number_of_keys; idx++) {
+    LASvlr_key_entry* key = (LASvlr_key_entry*)&lasreader->header.vlr_geo_keys[idx];
+
+    if (key != nullptr) {
+      switch (key->key_id) {
+        case 3072:  // ProjectedCSTypeGeoKey
+          epsg = key->value_offset;
+          break;
+        case 2048:  // GeographicTypeGeoKey
+          if (epsg == 0) epsg = key->value_offset;
+          break;
+      }
+    }
+  }
+  return epsg;
+}
+
+/// Returns the vertical EPSG code from the GeoTIFF GeoKeys in the LAS header
+U32 GeoProjectionConverter::get_geokeys_projection_vert_epsg(LASreader* lasreader) {
+  if (lasreader == nullptr || lasreader->header.vlr_geo_keys == nullptr) return 0;
+
+  for (int idx = 0; idx < lasreader->header.vlr_geo_keys->number_of_keys; idx++) {
+    LASvlr_key_entry* key = (LASvlr_key_entry*)&lasreader->header.vlr_geo_keys[idx];
+    // VerticalCSTypeGeoKey
+    if (key != nullptr && key->key_id == 4096) {
+      return key->value_offset;
+    }
+  }
+  return 0;
+}
+
 void GeoProjectionConverter::reset_coordinate_units(bool source) {
   coordinate_units_set[(int)source] = false;
   if (source) {
