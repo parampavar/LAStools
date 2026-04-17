@@ -1099,6 +1099,8 @@ public:
     }
   }
 
+  // getter functions
+
   std::string get_GUID() {
     char guid_buffer[256];
     snprintf(
@@ -1117,7 +1119,7 @@ public:
   /// Converts the year and day of year stored in the LAS header into a YYYY-MM-DD date or 'unknown' if the values are invalid and retuns it
   std::string get_dayOfYear_to_date_string() {
     if (this->file_creation_year == 0 || this->file_creation_day == 0) {
-      return "unknown";
+      return "";
     }
 
     std::tm date = {};
@@ -1125,7 +1127,7 @@ public:
     date.tm_mday = this->file_creation_day;
 
     if (std::mktime(&date) == -1) {
-      return "unknown";
+      return "";
     }
 
     char buffer[16];
@@ -1139,6 +1141,17 @@ public:
     }
     return this->number_of_point_records;
   }
+
+  U64 get_number_of_points_by_return_uni(U8 idx) {
+    if (this->version_minor >= 4 ) {
+      if (idx < 15) {
+        return this->extended_number_of_points_by_return[idx];
+      }
+    } else if (idx < 5) {
+      return this->number_of_points_by_return[idx];
+    }
+    return 0;
+  };
 
   ~LASheader()
   {
