@@ -2398,22 +2398,36 @@ const CHAR* LASreadOpener::get_file_extension_only(U32 number) const {
 }
 
 I32 LASreadOpener::get_file_format(U32 number) const {
-  if (IsLasLazFile(std::string(file_names[number]))) {
+  const std::string name = file_names[number];
+
+  if (HasFileExt(name, ".las")) {
     return LAS_TOOLS_FORMAT_LAS;
-  } else if (HasFileExt(std::string(file_names[number]), ".bin")) {
+  } else if (HasFileExt(name, ".laz")) {
+    return LAS_TOOLS_FORMAT_LAZ;
+  } else if (HasFileExt(name, ".bin")) {
     return LAS_TOOLS_FORMAT_BIN;
-  } else if (HasFileExt(std::string(file_names[number]), ".shp")) {
+  } else if (HasFileExt(name, ".shp")) {
     return LAS_TOOLS_FORMAT_SHP;
-  } else if (HasFileExt(std::string(file_names[number]), ".qi")) {
+  } else if (HasFileExt(name, ".qi")) {
     return LAS_TOOLS_FORMAT_QFIT;
-  } else if (HasFileExt(std::string(file_names[number]), ".asc")) {
+  } else if (HasFileExt(name, ".asc")) {
     return LAS_TOOLS_FORMAT_ASC;
-  } else if (HasFileExt(std::string(file_names[number]), ".bil")) {
+  } else if (HasFileExt(name, ".bil")) {
     return LAS_TOOLS_FORMAT_BIL;
-  } else if (HasFileExt(std::string(file_names[number]), ".dtm")) {
+  } else if (HasFileExt(name, ".dtm")) {
     return LAS_TOOLS_FORMAT_DTM;
-  } else {
+  } else if (HasFileExt(name, ".ply")) {
+    return LAS_TOOLS_FORMAT_PLY;
+  } else if (HasFileExt(name, ".txt")) {
     return LAS_TOOLS_FORMAT_TXT;
+  } else if (HasFileExt(name, ".json")) {
+    return LAS_TOOLS_FORMAT_JSON;
+  } else if (HasFileExt(name, ".xml")) {
+    return LAS_TOOLS_FORMAT_XML;
+  } else if (HasFileExt(name, ".csv")) {
+    return LAS_TOOLS_FORMAT_CSV;
+  } else {
+    return LAS_TOOLS_FORMAT_DEFAULT;
   }
 }
 
