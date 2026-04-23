@@ -38,11 +38,15 @@ BOOL ValidateXmlWriter::is_open() const {
 BOOL ValidateXmlWriter::open(const std::string& key) {
   if (file == nullptr) return FALSE;
 
+  stream.str("");
+  stream.clear();
+
   indent = 0;
-  fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-  printIndent();
-  fprintf(file, "<%s>\n", key.c_str());
+  stream << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+  printIndent(stream);
+  stream << "<" << key << ">\n";
   indent++;
+
   return TRUE;
 }
 
@@ -50,9 +54,10 @@ BOOL ValidateXmlWriter::open(const std::string& key) {
 BOOL ValidateXmlWriter::begin(const std::string& key, ContainerType type) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "<%s>\n", key.c_str());
+  printIndent(stream);
+  stream << "<" << key << ">\n";
   indent++;
+
   return TRUE;
 }
 
@@ -67,8 +72,9 @@ BOOL ValidateXmlWriter::write(const std::string& value) {
 
   std::string escaped_value = escape_xml_value(value);
 
-  printIndent();
-  fprintf(file, "%s\n", escaped_value.c_str());
+  printIndent(stream);
+  stream << escaped_value << "\n";
+
   return TRUE;
 }
 
@@ -76,8 +82,9 @@ BOOL ValidateXmlWriter::write(const std::string& value) {
 BOOL ValidateXmlWriter::write(I32 value) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "%d\n", value);
+  printIndent(stream);
+  stream << value << "\n";
+
   return TRUE;
 }
 
@@ -87,8 +94,9 @@ BOOL ValidateXmlWriter::write(const std::string& key, const std::string& value) 
 
   std::string escaped_value = escape_xml_value(value);
 
-  printIndent();
-  fprintf(file, "<%s>%s</%s>\n", key.c_str(), escaped_value.c_str(), key.c_str());
+  printIndent(stream);
+  stream << "<" << key << ">" << escaped_value << "</" << key << ">\n";
+
   return TRUE;
 }
 
@@ -96,8 +104,9 @@ BOOL ValidateXmlWriter::write(const std::string& key, const std::string& value) 
 BOOL ValidateXmlWriter::write(const std::string& key, I32 value) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "<%s>%d</%s>\n", key.c_str(), value, key.c_str());
+  printIndent(stream);
+  stream << "<" << key << ">" << value << "</" << key << ">\n";
+
   return TRUE;
 }
 
@@ -105,23 +114,34 @@ BOOL ValidateXmlWriter::write(const std::string& key, I32 value) {
 BOOL ValidateXmlWriter::write(const std::string& variable, const std::string& key, const std::string& note) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "<%s>\n", key.c_str());
+  printIndent(stream);
+  stream << "<" << key << ">\n";
   indent++;
 
-  printIndent();
-  fprintf(file, "<variable>%s</variable>\n", variable.c_str());
+  printIndent(stream);
+  stream << "<variable>" << variable << "</variable>\n";
 
   if (!note.empty()) {
     std::string escaped_note = escape_xml_value(note);
 
-    printIndent();
-    fprintf(file, "<note>%s</note>\n", escaped_note.c_str());
+    printIndent(stream);
+    stream << "<note>" << escaped_note << "</note>\n";
   }
 
   indent--;
-  printIndent();
-  fprintf(file, "</%s>\n", key.c_str());
+  printIndent(stream);
+  stream << "</" << key << ">\n";
+
+  return TRUE;
+}
+
+/// Finally, write the entire report to the output
+BOOL ValidateXmlWriter::write_final() {
+  if (file == nullptr) return FALSE;
+
+  std::string out = stream.str();
+  fwrite(out.data(), 1, out.size(), file);
+  
   return TRUE;
 }
 
@@ -135,7 +155,7 @@ BOOL ValidateXmlWriter::end(const std::string& key) {
   if (file == nullptr) return FALSE;
 
   indent--;
-  printIndent();
-  fprintf(file, "</%s>\n", key.c_str());
+  printIndent(stream);
+  stream << "</" << key << ">\n";
   return TRUE;
 }

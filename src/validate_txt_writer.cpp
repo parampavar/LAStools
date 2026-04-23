@@ -38,8 +38,12 @@ BOOL ValidateTxtWriter::is_open() const {
 BOOL ValidateTxtWriter::open(const std::string& key) {
   if (file == nullptr) return FALSE;
 
-  fprintf(file, "%s\n", key.c_str());
-  fprintf(file, "============\n");
+  stream.str("");
+  stream.clear();
+
+  stream << key << "\n";
+  stream << "============\n";
+  std::string out = stream.str();
   indent = 0;
 
   return TRUE;
@@ -49,8 +53,8 @@ BOOL ValidateTxtWriter::open(const std::string& key) {
 BOOL ValidateTxtWriter::begin(const std::string& key, ContainerType type) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "%s:\n", key.c_str());
+  printIndent(stream);
+  stream << key << ":\n";
   indent++;
 
   return TRUE;
@@ -65,8 +69,9 @@ BOOL ValidateTxtWriter::beginsub(const std::string& key, ContainerType type) {
 BOOL ValidateTxtWriter::write(const std::string& value) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "%s\n", value.c_str());
+  printIndent(stream);
+  stream << value << "\n";
+
   return TRUE;
 }
 
@@ -74,8 +79,9 @@ BOOL ValidateTxtWriter::write(const std::string& value) {
 BOOL ValidateTxtWriter::write(I32 value) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "%d\n", value);
+  printIndent(stream);
+  stream << value << "\n";
+
   return TRUE;
 }
 
@@ -83,8 +89,9 @@ BOOL ValidateTxtWriter::write(I32 value) {
 BOOL ValidateTxtWriter::write(const std::string& key, const std::string& value) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "%s: %s\n", key.c_str(), value.c_str());
+  printIndent(stream);
+  stream << key << ": " << value << "\n";
+
   return TRUE;
 }
 
@@ -92,8 +99,9 @@ BOOL ValidateTxtWriter::write(const std::string& key, const std::string& value) 
 BOOL ValidateTxtWriter::write(const std::string& key, I32 value) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "%s: %d\n", key.c_str(), value);
+  printIndent(stream);
+  stream << key << ": " << value << "\n";
+
   return TRUE;
 }
 
@@ -101,18 +109,29 @@ BOOL ValidateTxtWriter::write(const std::string& key, I32 value) {
 BOOL ValidateTxtWriter::write(const std::string& variable, const std::string& key, const std::string& note) {
   if (file == nullptr) return FALSE;
 
-  printIndent();
-  fprintf(file, "- %s\n", key.c_str());
+  printIndent(stream);
+  stream << "- " << key << "\n";
 
   indent++;
-  printIndent();
-  fprintf(file, "variable: %s\n", variable.c_str());
+  printIndent(stream);
+  stream << "variable: " << variable << "\n";
+
   if (!note.empty()) {
-    printIndent();
-    fprintf(file, "note: %s\n", note.c_str());
+    printIndent(stream);
+    stream << "note: " << note << "\n";
   }
   indent--;
 
+  return TRUE;
+}
+
+/// Finally, write the entire report to the output
+BOOL ValidateTxtWriter::write_final() {
+  if (file == nullptr || indent < 0) return FALSE;
+
+  std::string out = stream.str();
+  fwrite(out.data(), 1, out.size(), file);
+  
   return TRUE;
 }
 
@@ -126,6 +145,7 @@ BOOL ValidateTxtWriter::end(const std::string& key) {
   if (file == nullptr || indent == 0) return FALSE;
 
   indent--;
-  fprintf(file, "\n");
+  stream << "\n";
+
   return TRUE;
 }

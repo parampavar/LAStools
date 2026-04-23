@@ -144,10 +144,13 @@ Further examples
 
 -halt_on_errors                     : halt on errors, even if more then 1 input files checked
 -no_CRS_fail                        : all CRS (Coordinate Reference System) validation errors are issued as warnings
--ocsv                               : Simplified output as csv file
+-ocsv                               : simplified output as csv file
 -oxml                               : output as xml file
 -otxt                               : output as text file  
 -ojs                                : output as json file  
+-csv                                : simplified output in csv format (otherwise default json)  
+-txt                                : output in txt format (otherwise default json)
+-xml                                : output in xml format (otherwise default json)
 -report_per_file                    : creates a separate validation report file for each input file
 -tile_size [n]                      : checks whether the header bounding box exceeds the tile size [n]
 

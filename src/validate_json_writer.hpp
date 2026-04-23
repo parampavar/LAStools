@@ -51,6 +51,7 @@ class ValidateJsonWriter : public ValidateWriter {
   BOOL write(const std::string& key, I32 value) override;
   BOOL write(const std::string& key, const std::string& value) override;
   BOOL write(const std::string& variable, const std::string& key, const std::string& note) override;
+  BOOL write_final() override;
   BOOL endsub(const std::string& key) override;
   BOOL end(const std::string& key) override;
 

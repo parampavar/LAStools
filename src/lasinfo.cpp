@@ -1807,7 +1807,7 @@ public:
         if (json_out) {
           json_sub_main_header_entries["file_signature"] = std::string(lasheader->file_signature).substr(0, 4);
           json_sub_main_header_entries["file_source_id"] = lasheader->file_source_ID;
-          json_sub_main_header_entries["global_encoding"] = std::to_string(lasheader->global_encoding) + global_encoding_bits;
+          json_sub_main_header_entries["global_encoding"] = std::to_string(lasheader->global_encoding);
           json_sub_main_header_entries["global_encoding_bits"] = global_encoding_bits;
         } else if (csv_out) {
           add_csv_field(file_csv, "file_source_id", lasheader->file_source_ID);

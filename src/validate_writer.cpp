@@ -37,10 +37,10 @@ ValidateWriter::ValidateWriter(FILE* file) {
   this->file = file;
 }
 
-void ValidateWriter::printIndent() {
+void ValidateWriter::printIndent(std::ostringstream& stream) {
   if (file == nullptr) return;
 
   for (int i = 0; i < indent; ++i) {
-    fprintf(file, "  ");  // 2 spaces per level
+    stream << "  ";  // 2 spaces per level
   }
 }
