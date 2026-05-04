@@ -435,6 +435,9 @@ I32 LASreadOpener::unparse(CHAR* string) const {
   if (merged) {
     n += sprintf(string + n, "-merged ");
   }
+  if (subdir) {
+    n += sprintf(string + n, "-subdir ");
+  }
   if (files_are_flightlines) {
     if (files_are_flightlines == 1) {
       n += sprintf(string + n, "-faf ");
@@ -1649,7 +1652,8 @@ void LASreadOpener::usage() const {
       "  -i lidar.las\n"
       "  -i lidar.laz\n"
       "  -i lidar1.las lidar2.las lidar3.las -merged\n"
-      "  -i *.las - merged\n"
+      "  -i *.las -merged\n"
+      "  -i *.las -subdir\n"
       "  -i flight0??.laz flight1??.laz\n"
       "  -i terrasolid.bin\n"
       "  -i esri.shp\n"
@@ -1674,6 +1678,8 @@ void LASreadOpener::usage() const {
 
 void LASreadOpener::parse(int argc, char* argv[], BOOL parse_ignore, BOOL suppress_ignore) {
   int i;
+  std::vector<std::string> input_patterns;
+
   for (i = 1; i < argc; i++) {
     if (argv[i][0] == '\0') {
       continue;
@@ -1692,11 +1698,11 @@ void LASreadOpener::parse(int argc, char* argv[], BOOL parse_ignore, BOOL suppre
         }
         *argv[i] = '\0';
         i += 1;
-        do {
-          add_file_name(argv[i], unique);
+        while ((i < argc) && (*argv[i] != '-') && (*argv[i] != '\0')) {
+          input_patterns.emplace_back(argv[i]);
           *argv[i] = '\0';
           i += 1;
-        } while ((i < argc) && (*argv[i] != '-') && (*argv[i] != '\0'));
+        }
         i -= 1;
       } else if (strncmp(argv[i], "-ignore_", 8) == 0) {
         if (parse_ignore) {
@@ -2106,7 +2112,10 @@ void LASreadOpener::parse(int argc, char* argv[], BOOL parse_ignore, BOOL suppre
       } else if (strcmp(argv[i], "-stored") == 0) {
         set_stored(TRUE);
         *argv[i] = '\0';
-      } else if (strcmp(argv[i], "-stream_order_spatial") == 0) { // COPC only
+      } else if (strcmp(argv[i], "-subdir") == 0) {
+        set_subdir(TRUE);
+        *argv[i] = '\0';
+      } else if (strcmp(argv[i], "-stream_order_spatial") == 0) {  // COPC only
         set_copc_stream_ordered_spatially(); // 1 (default)
         *argv[i] = '\0';
       } else if (strcmp(argv[i], "-stream_order_normal") == 0) { // COPC only
@@ -2244,6 +2253,15 @@ void LASreadOpener::parse(int argc, char* argv[], BOOL parse_ignore, BOOL suppre
         *argv[i] = '\0';
       }
       i += 1;
+    }
+  }
+
+  // process all input patterns recursive if -subdir was set, otherwise normal
+  for (const std::string& pattern : input_patterns) {
+    if (subdir) {
+      add_file_name_recursive(pattern, unique);
+    } else {
+      add_file_name(pattern.c_str(), unique);
     }
   }
 
@@ -2463,6 +2481,10 @@ void LASreadOpener::set_merged(const BOOL merged) {
   this->merged = merged;
 }
 
+void LASreadOpener::set_subdir(const BOOL subdir) {
+  this->subdir = subdir;
+}
+
 void LASreadOpener::set_stored(const BOOL stored) {
   this->stored = stored;
 }
@@ -2526,10 +2548,59 @@ void LASreadOpener::set_file_name(const CHAR* file_name, BOOL unique) {
 
 #ifdef _WIN32
 #include <windows.h>
+/// Searches for the specified pattern in the current directory and recursively in all subdirectories, whilst retaining the original file pattern
+BOOL LASreadOpener::add_file_name_recursive(const std::string& pattern, BOOL unique) {
+  // Process the pattern itself first
+  add_file_name(pattern.c_str(), unique);
+
+  // Split the pattern into a directory and a suffix
+  std::string p = pattern;
+  size_t pos = p.find_last_of("\\/:");
+  std::string dir;
+  std::string suffix;
+
+  // If no slash use current directory
+  if (pos == std::string::npos) {
+    dir = ".";
+    suffix = p;
+  } else {
+    dir = p.substr(0, pos);
+    suffix = p.substr(pos + 1);
+  }
+
+  std::string search = dir + "\\*";
+
+  WIN32_FIND_DATA info;
+  HANDLE h = FindFirstFile(search.c_str(), &info);
+  if (h == INVALID_HANDLE_VALUE) return TRUE;
+
+  do {
+    if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      const char* name = info.cFileName;
+
+      // Skip '.' and '..'
+      if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
+
+      std::string new_pattern = dir + "\\" + name + "\\" + suffix;
+
+      // Process recursively
+      add_file_name_recursive(new_pattern, unique);
+    }
+
+  } while (FindNextFile(h, &info));
+
+  FindClose(h);
+  return TRUE;
+}
+
 BOOL LASreadOpener::add_file_name(const CHAR* file_name, BOOL unique) {
   BOOL r = FALSE;
   HANDLE h;
   WIN32_FIND_DATA info;
+
+  // extract the extension from the pattern
+  std::string ext = getFileExtension(file_name);
+
   h = FindFirstFile(file_name, &info);
   if (h != INVALID_HANDLE_VALUE) {
     // find the path
@@ -2541,11 +2612,17 @@ BOOL LASreadOpener::add_file_name(const CHAR* file_name, BOOL unique) {
       strncpy_las(full_file_name, sizeof(full_file_name), file_name, len);
       size_t remaining_size = (sizeof(full_file_name) > len) ? (sizeof(full_file_name) - len) : 0;
       do {
+        // windows wildcards also return partial matches. Here a strict check is performed for the exact file ext
+        if (!ext.empty() && !HasFileExt(info.cFileName, ext)) continue;
+
         snprintf(&full_file_name[len], remaining_size, "%s", info.cFileName);
         if (add_file_name_single(full_file_name, unique)) r = TRUE;
       } while (FindNextFile(h, &info));
     } else {
       do {
+        // windows wildcards also return partial matche. Here a strict check is performed for the exact file ext
+        if (!ext.empty() && !HasFileExt(info.cFileName, ext)) continue;
+
         if (add_file_name_single(info.cFileName, unique)) r = TRUE;
       } while (FindNextFile(h, &info));
     }
@@ -2553,13 +2630,82 @@ BOOL LASreadOpener::add_file_name(const CHAR* file_name, BOOL unique) {
   }
   return r;
 }
+#else
+#include <dirent.h>
+#include <glob.h>
+#include <sys/stat.h>
+/// Searches for the specified pattern in the current directory and recursively in all subdirectories, whilst retaining the original file pattern
+BOOL LASreadOpener::add_file_name_recursive(const std::string& pattern, BOOL unique) {
+  std::string p = pattern;
+  size_t pos = p.find_last_of("/\\");
+
+  std::string dir;
+  std::string suffix;
+
+  if (pos == std::string::npos) {
+    dir = ".";
+    suffix = p;
+  } else {
+    dir = p.substr(0, pos);
+    suffix = p.substr(pos + 1);
+  }
+
+  // Files in the current directory
+  std::string full_pattern = dir + "/" + suffix;
+  add_file_name(full_pattern.c_str(), unique);
+
+  // Iterate through subdirectories
+  DIR* d = opendir(dir.c_str());
+  if (!d) return TRUE;
+
+  struct dirent* entry;
+  while ((entry = readdir(d)) != NULL) {
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+
+    std::string full = dir + "/" + entry->d_name;
+
+    struct stat st;
+    if (stat(full.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+      // Recursion, same suffix, new dir
+      std::string new_pattern = full + "/" + suffix;
+      add_file_name_recursive(new_pattern, unique);
+    }
+  }
+
+  closedir(d);
+  return TRUE;
+}
+
+
+BOOL LASreadOpener::add_file_name(const CHAR* file_name, BOOL unique) {
+  BOOL r = FALSE;
+
+  // extract extension from pattern
+  std::string ext = getFileExtension(file_name);
+
+  glob_t g;
+  if (glob(file_name, 0, NULL, &g) == 0) {
+    for (size_t i = 0; i < g.gl_pathc; i++) {
+      const char* fname = g.gl_pathv[i];
+
+      // strict extension check
+      std::string base = fname;
+      size_t pos = base.find_last_of("/\\");
+      if (pos != std::string::npos) base = base.substr(pos + 1);
+
+      // wildcards also return partial matche. Here a strict check is performed for the exact file ext
+      if (!ext.empty() && !HasFileExt(base, ext)) continue;
+
+      if (add_file_name_single(fname, unique)) r = TRUE;
+    }
+  }
+
+  globfree(&g);
+  return r;
+}
 #endif
 
-#ifdef _WIN32
 BOOL LASreadOpener::add_file_name_single(const CHAR* file_name, BOOL unique)
-#else
-BOOL LASreadOpener::add_file_name(const CHAR* file_name, BOOL unique)
-#endif
 {
   if (unique) {
     U32 i;
@@ -3139,6 +3285,7 @@ LASreadOpener::LASreadOpener() {
   neighbor_file_names_max_y = 0;
   neighbor_kdtree_rectangles = 0;
   merged = FALSE;
+  subdir = FALSE;
   stored = FALSE;
   use_stdin = FALSE;
   comma_not_point = FALSE;

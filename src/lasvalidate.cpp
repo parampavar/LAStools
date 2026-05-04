@@ -144,7 +144,6 @@ int main(int argc, char *argv[]) {
   BOOL is_xml = FALSE;
   F64 tile_size = 0.0;
   BOOL one_report_per_file = FALSE;
-  U32 num_files = 0;
   U32 num_pass = 0;
   U32 num_fail = 0;
   U32 num_warning = 0;
@@ -182,7 +181,9 @@ int main(int argc, char *argv[]) {
     file_out = stdout;
   }
 
-  if (lasreadopener.get_file_name_number() > 1) {
+  U32 num_files = lasreadopener.get_file_name_number();
+
+  if (num_files > 1) {
     halt_on_error(false);
     LASMessage(LAS_INFO, "more than 1 input files to check. '-errors_ignore' will be used by default for %s", lastool.name.c_str());
   }
@@ -407,9 +408,6 @@ int main(int argc, char *argv[]) {
           num_pass++;
         }
         
-        //sum over all files
-        num_files++;
-
         // end the report
         
         if (!is_csv) writer->end("report");
