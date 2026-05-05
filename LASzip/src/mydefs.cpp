@@ -41,7 +41,7 @@
 #include <string>
 #ifdef _WIN32
 #include <windows.h>
-#include <cctype> //needed for vs2017 and vs2019 to avoid std::tolower and std:toupper compile errors
+#include <cctype> //needed for vs2017 to avoid std::tolower and std:toupper compile errors
 #else
 #include <unistd.h>
 #endif
