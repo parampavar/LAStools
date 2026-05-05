@@ -34,7 +34,9 @@
 
 #include "mydefs.hpp"
 #include "validate_writer.hpp"
+
 #include <stdio.h>
+#include <sstream>
 
 class ValidateXmlWriter : public ValidateWriter {
  public:
@@ -49,12 +51,16 @@ class ValidateXmlWriter : public ValidateWriter {
   BOOL write(const std::string& key, I32 value) override;
   BOOL write(const std::string& key, const std::string& value) override;
   BOOL write(const std::string& variable, const std::string& key, const std::string& note) override;
+  BOOL write_final() override;
   BOOL endsub(const std::string& key) override;
   BOOL end(const std::string& key) override;
 
   inline void next_file() override { return; };
 
   ~ValidateXmlWriter() override = default;
+
+ private:
+  std::ostringstream stream;
 };
 
 #endif

@@ -424,6 +424,9 @@ public:
   bool has_coordinate_units(bool source=true) const;
   const char* get_coordinate_unit_description_string(bool abrev=true, bool source=true) const;
 
+  U32 get_geokeys_projection_epsg(LASreader* lasreader);
+  U32 get_geokeys_projection_vert_epsg(LASreader* lasreader);
+
   void set_elevation_in_survey_feet(bool source=true);
   void set_elevation_in_feet(bool source=true);
   void set_elevation_in_meter(bool source=true);

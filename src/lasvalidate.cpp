@@ -139,6 +139,9 @@ int main(int argc, char *argv[]) {
   double full_start_time = 0.0;
   FILE* file_out = stderr;
   BOOL no_CRS_fail = FALSE;
+  BOOL is_csv = FALSE;
+  BOOL is_text = FALSE;
+  BOOL is_xml = FALSE;
   F64 tile_size = 0.0;
   BOOL one_report_per_file = FALSE;
   U32 num_pass = 0;
@@ -178,7 +181,9 @@ int main(int argc, char *argv[]) {
     file_out = stdout;
   }
 
-  if (lasreadopener.get_file_name_number() > 1) {
+  U32 num_files = lasreadopener.get_file_name_number();
+
+  if (num_files > 1) {
     halt_on_error(false);
     LASMessage(LAS_INFO, "more than 1 input files to check. '-errors_ignore' will be used by default for %s", lastool.name.c_str());
   }
@@ -186,6 +191,12 @@ int main(int argc, char *argv[]) {
   auto arg_local = [&](int& i) -> bool {
     if (strcmp(argv[i], "-quiet") == 0) {
       file_out = nullptr;
+    } else if (strcmp(argv[i], "-txt") == 0 || strcmp(argv[i], "-TXT") == 0) {
+      is_text = TRUE;
+    } else if (strcmp(argv[i], "-csv") == 0 || strcmp(argv[i], "-CSV") == 0) {
+      is_csv = TRUE;
+    } else if (strcmp(argv[i], "-xml") == 0 || strcmp(argv[i], "-XML") == 0) {
+      is_xml = TRUE;
     } else if (strcmp(argv[i], "-halt_on_errors") == 0) {
       halt_on_error(true);
     } else if (strcmp(argv[i], "-no_CRS_fail") == 0) {
@@ -250,7 +261,7 @@ int main(int argc, char *argv[]) {
 
   ValidationStatus total_pass = ValidationStatus::passed;
   BOOL first_report = TRUE;
-  BOOL is_csv = (laswriteopener.get_format() == LAS_TOOLS_FORMAT_CSV) ? TRUE : FALSE;
+  if (is_csv == FALSE) is_csv = (laswriteopener.get_format() == LAS_TOOLS_FORMAT_CSV) ? TRUE : FALSE;
 
   full_start_time = taketime();
 
@@ -285,7 +296,16 @@ int main(int argc, char *argv[]) {
       } else if (first_report == TRUE) {
         if (laswriteopener.get_file_name() == nullptr) {
           if (laswriteopener.get_format() == LAS_TOOLS_FORMAT_DEFAULT) {
-            laswriteopener.set_format("json");
+            std::string file_format = "json";
+
+            if (is_csv == TRUE) {
+              file_format = "csv";
+            } else if (is_xml == TRUE) {
+              file_format = "xml";
+            } else if (is_text == TRUE) {
+              file_format = "txt";
+            }
+            laswriteopener.set_format(file_format.c_str());
 
             if (laswriteopener.get_directory() == nullptr)
               laswriteopener.set_directory(lasreadopener.get_file_name_base());
@@ -399,12 +419,13 @@ int main(int argc, char *argv[]) {
         
           if (!is_csv) {
             writer->begin("total");
+            writer->write("files", num_files);
             writer->write("result", (total_pass == ValidationStatus::passed ? "pass" : (total_pass == ValidationStatus::failed ? "fail" : "warning")));
-            writer->beginsub("details");
+            writer->beginsub("file_summaries");
             writer->write("pass", num_pass);
             writer->write("warning", num_warning);
             writer->write("fail", num_fail);
-            writer->endsub("details");
+            writer->endsub("file_summaries");
             writer->end("total");
         
             num_pass = 0;
@@ -412,9 +433,10 @@ int main(int argc, char *argv[]) {
             num_fail = 0;
           }
         
-          // close the LASvalidator XML output file
+          // close the LASvalidator output file
 
           writer->end("LASvalidator");
+          if (one_report_per_file == TRUE) writer->write_final();
 
           if (file_out && (file_out != stdout) && (file_out != stderr)) fclose(file_out);
           laswriteopener.set_file_name(nullptr);
@@ -438,29 +460,31 @@ int main(int argc, char *argv[]) {
   // maybe we are doing one summary report
 
   if (one_report_per_file == FALSE && writer != nullptr) {
-    // report the total verdict 
+    // report total 
 
     if (!is_csv) {
       writer->begin("total");
+      writer->write("files", num_files);
       writer->write("result", (total_pass == ValidationStatus::passed ? "pass" : (total_pass == ValidationStatus::failed ? "fail" : "warning")));
-      writer->beginsub("details");
+      writer->beginsub("file_summaries");
       writer->write("pass", num_pass);
       writer->write("warning", num_warning);
       writer->write("fail", num_fail);
-      writer->endsub("details");
+      writer->endsub("file_summaries");
       writer->end("total");
     }
 
     // close the LASvalidator XML file
 
     writer->end("LASvalidator");
+    writer->write_final();
 
     if (file_out && (file_out != stdout) && (file_out != stderr)) fclose(file_out);
     laswriteopener.set_file_name(nullptr);
   }
   delete writer;
 
-  if (lasreadopener.get_file_name_number() > 1) {
+  if (lasreadopener.get_file_name_number() > 0) {
     LASMessage(LAS_VERBOSE, "done. total time %.2f sec. total %s (pass=%d,warning=%d,fail=%d)", taketime() - full_start_time,
         (total_pass == ValidationStatus::passed ? "pass" : (total_pass == ValidationStatus::failed ? "fail" : "warning")), 
         num_pass, num_warning, num_fail);

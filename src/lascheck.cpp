@@ -1051,7 +1051,7 @@ void LAScheck::check(ValidationResult& results, std::string& crsdescription, BOO
           results.add_warning("scan angle rank", note_oss.str());
         }
       } else {
-        if (lassummary.min.get_scan_angle_disp() == lassummary.max.get_scan_angle_disp()) {
+        if (fp_equal(lassummary.min.get_scan_angle(), lassummary.max.get_scan_angle())) {
           set_oss_content(note_oss, "scan angle of all ", lassummary.number_of_point_records, " points is ", std::fixed, std::setprecision(3),
               lassummary.min.get_scan_angle_disp());
           results.add_warning("scan angle", note_oss.str());

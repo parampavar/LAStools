@@ -132,6 +132,21 @@ BOOL ValidateJsonWriter::write(const std::string& variable, const std::string& k
   return TRUE;
 }
 
+/// Finally, write the entire report to the output
+BOOL ValidateJsonWriter::write_final() {
+  if (file == nullptr) return FALSE;
+
+  // if root is closed, then write to the file
+  if (stack.empty()) {
+    std::string json = root.dump(2);
+    json.push_back('\n');
+
+    fwrite(json.data(), 1, json.size(), file);
+  }
+
+  return TRUE;
+}
+
 /// Closes the current sub-section and restores the previous write context
 BOOL ValidateJsonWriter::endsub(const std::string& key) {
   if (file == nullptr || stack.size() <= 1) return FALSE;
@@ -145,9 +160,6 @@ BOOL ValidateJsonWriter::end(const std::string& key) {
   if (file == nullptr || stack.empty()) return FALSE;
 
   stack.pop_back();
-  // if root is closed, then write to the file
-  if (stack.empty()) {
-    fprintf(file, "%s\n", root.dump(2).c_str());
-  }
+
   return TRUE;
 }

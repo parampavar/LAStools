@@ -52,7 +52,7 @@
 #ifndef LAS_DEFINITIONS_HPP
 #define LAS_DEFINITIONS_HPP
 
-#define LAS_TOOLS_VERSION 260326
+#define LAS_TOOLS_VERSION 260505
 
 #include <stdio.h>
 #include <string.h>
@@ -1099,6 +1099,8 @@ public:
     }
   }
 
+  // getter functions
+
   std::string get_GUID() {
     char guid_buffer[256];
     snprintf(
@@ -1113,6 +1115,43 @@ public:
     snprintf(version_buffer, sizeof(version_buffer), "%d.%d", version_major, version_minor);
     return std::string(version_buffer);
   }
+
+  /// Converts the year and day of year stored in the LAS header into a YYYY-MM-DD date or 'unknown' if the values are invalid and retuns it
+  std::string get_dayOfYear_to_date_string() {
+    if (this->file_creation_year == 0 || this->file_creation_day == 0) {
+      return "";
+    }
+
+    std::tm date = {};
+    date.tm_year = this->file_creation_year - 1900;
+    date.tm_mday = this->file_creation_day;
+
+    if (std::mktime(&date) == -1) {
+      return "";
+    }
+
+    char buffer[16];
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d", &date);
+    return buffer;
+  }
+
+  U64 get_number_of_point_records_uni() {
+    if (this->extended_number_of_point_records != 0) {
+      return this->extended_number_of_point_records;
+    }
+    return this->number_of_point_records;
+  }
+
+  U64 get_number_of_points_by_return_uni(U8 idx) {
+    if (this->version_minor >= 4 ) {
+      if (idx < 15) {
+        return this->extended_number_of_points_by_return[idx];
+      }
+    } else if (idx < 5) {
+      return this->number_of_points_by_return[idx];
+    }
+    return 0;
+  };
 
   ~LASheader()
   {

@@ -36,7 +36,7 @@
 
 #include <stdio.h>
 #include <string>
-
+#include <sstream>
 
 class ValidateWriter {
  public:
@@ -54,6 +54,7 @@ class ValidateWriter {
   virtual BOOL write(const std::string& key, I32 value) = 0;
   virtual BOOL write(const std::string& key, const std::string& value) = 0;
   virtual BOOL write(const std::string& variable, const std::string& key, const std::string& note) = 0;
+  virtual BOOL write_final() = 0;
   virtual BOOL endsub(const std::string& key) = 0;
   virtual BOOL end(const std::string& key) = 0;
   virtual void next_file() = 0;
@@ -66,7 +67,7 @@ class ValidateWriter {
   BOOL sub;
   FILE* file;
 
-  void printIndent();
+  void printIndent(std::ostringstream &stream);
 };
 
 #endif

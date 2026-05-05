@@ -587,7 +587,7 @@ int stoidefault(const std::string& val, int def = 0);
 /// string to double with default value (no exception)
 double stoddefault(const std::string& val, double def = 0);
 
-/// Function for rounding to a specific number of decimal places
+/// Function for rounding double to a specific number of decimal places
 double DoubleRound(double value, int decimals);
 
 /// return double as string rounded to a maximum number of decimal places. optional trim trailing 0s

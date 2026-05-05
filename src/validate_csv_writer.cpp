@@ -30,6 +30,7 @@
 */
 
 #include "validate_csv_writer.hpp"
+#include <sstream>
 
 /// Write all key-value pairs in detail_data to the csv structure
 void ValidateCsvWriter::flush_detail_data() {
@@ -139,6 +140,46 @@ BOOL ValidateCsvWriter::write(const std::string& variable, const std::string& ke
   return TRUE;
 }
 
+/// Finally, write the entire report to the output
+BOOL ValidateCsvWriter::write_final() {
+  if (file == nullptr) return FALSE;
+
+  flush_detail_data();
+
+  std::ostringstream stream;
+
+  // 1. Write header
+  bool first = true;
+  for (const auto& key : key_order) {
+    if (!first) stream << ";";
+    stream << key;
+    first = false;
+  }
+  stream << "\n";
+
+  // 2. Write data rows
+  for (size_t row = 0; row <= current_row; ++row) {
+    first = true;
+
+    for (const auto& key : key_order) {
+      if (!first) stream << ";";
+
+      const auto& column = csv_data[key];
+      if (row < column.size()) {
+        stream << column[row];
+      }
+
+      first = false;
+    }
+    stream << "\n";
+  }
+
+  std::string out = stream.str();
+  fwrite(out.data(), 1, out.size(), file);
+
+  return TRUE;
+}
+
 /// Closes the current sub-section and restores the previous write context
 BOOL ValidateCsvWriter::endsub(const std::string& key) {
   if (file == nullptr) return FALSE;
@@ -150,32 +191,5 @@ BOOL ValidateCsvWriter::endsub(const std::string& key) {
 BOOL ValidateCsvWriter::end(const std::string& key) {
   if (file == nullptr) return FALSE;
 
-  flush_detail_data();
-
-  // 1. Write header
-  bool first = true;
-  for (const auto& key : key_order) {
-    if (!first) fprintf(file, ";");
-    fprintf(file, "%s", key.c_str());
-    first = false;
-  }
-  fprintf(file, "\n");
-
-  // 2. Write data rows
-  for (size_t row = 0; row <= current_row; ++row) {
-    first = true;
-
-    for (const auto& key : key_order) {
-      if (!first) fprintf(file, ";");
-
-      const auto& column = csv_data[key];
-      if (row < column.size())
-        fprintf(file, "%s", column[row].c_str());
-
-      first = false;
-    }
-    fprintf(file, "\n");
-  }
-
-  return TRUE;
+   return TRUE;
 }
