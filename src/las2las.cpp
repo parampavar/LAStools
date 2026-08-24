@@ -763,7 +763,6 @@ int main(int argc, char* argv[])
   CHAR* set_ogc_wkt_string = 0;
   bool remove_header_padding = false;
   bool remove_all_variable_length_records = false;
-  int remove_variable_length_record = -1;
   int remove_variable_length_record_from = -1;
   int remove_variable_length_record_to = -1;
   bool remove_all_extended_variable_length_records = false;
@@ -780,6 +779,9 @@ int main(int argc, char* argv[])
   bool load_vlr = false;
   int vlr_index = -1;
   int vlr_record_id = -1;
+  std::vector<int> remove_vlr_indices;
+  CHAR* remove_vlr_user_id = nullptr;
+  int remove_vlr_record_id = -1;
   CHAR* vlr_user_id = nullptr;
   CHAR* vlr_filename = nullptr;
   bool load_txt_to_vlr = false;
@@ -1155,21 +1157,48 @@ int main(int argc, char* argv[])
       else if (strcmp(argv[i], "-remove_all_vlrs") == 0)
       {
         remove_all_variable_length_records = true;
-      }
-      else if (strcmp(argv[i], "-remove_vlr") == 0)
-      {
-        lastool.parse_arg_cnt_check(i, 1, "number");
-        remove_variable_length_record = atoi(argv[i + 1]);
+      } else if (strcmp(argv[i], "-remove_vlr") == 0) {
+        remove_vlr_user_id = nullptr;
+        remove_vlr_record_id = -1;
+        remove_vlr_indices.clear();
+
+        if (i + 1 >= argc || argv[i + 1][0] == '-') {
+          laserror("missing argument for -remove_vlr");
+        }
+
+        // User ID and record ID
+        else if (!isdigit(static_cast<unsigned char>(argv[i + 1][0]))) {
+          if (i + 2 >= argc || argv[i + 2][0] == '-') {
+            laserror("-remove_vlr requires user ID and record ID");
+          }
+          remove_vlr_user_id = argv[++i];
+          remove_vlr_record_id = atoi(argv[++i]);
+        }
+        // one or more VLR indices
+        else {
+          while (i + 1 < argc && argv[i + 1][0] != '-') {
+            char* end = nullptr;
+            long value = strtol(argv[i + 1], &end, 10);
+
+            if (*argv[i + 1] == '\0' || *end != '\0') {
+              laserror("invalid VLR index '%s'", argv[i + 1]);
+            }
+            remove_vlr_indices.push_back(static_cast<int>(value));
+            ++i;
+          }
+          std::sort(remove_vlr_indices.rbegin(), remove_vlr_indices.rend());
+        }
         remove_variable_length_record_from = -1;
         remove_variable_length_record_to = -1;
-        i++;
       }
       else if (strcmp(argv[i], "-remove_vlrs_from_to") == 0)
       {
         lastool.parse_arg_cnt_check(i, 1, "start end");
-        remove_variable_length_record = -1;
         remove_variable_length_record_from = atoi(argv[i + 1]);
         remove_variable_length_record_to = atoi(argv[i + 2]);
+        remove_vlr_user_id = nullptr;
+        remove_vlr_record_id = -1;
+        remove_vlr_indices.clear();
         i += 2;
       }
       else if (strcmp(argv[i], "-remove_all_evlrs") == 0)
@@ -2419,9 +2448,28 @@ int main(int argc, char* argv[])
       }
       else
       {
-        if (remove_variable_length_record != -1)
-        {
-          lasreader->header.remove_vlr(remove_variable_length_record);
+        if (!remove_vlr_indices.empty()) {
+          std::vector<int> failed_remove_vlr_indices;
+
+          for (int index : remove_vlr_indices) {
+            if (!lasreader->header.remove_vlr(index)) failed_remove_vlr_indices.push_back(index);
+          }
+          if (!failed_remove_vlr_indices.empty()) {
+            std::string failed_indices;
+
+            for (size_t j = 0; j < failed_remove_vlr_indices.size(); j++) {
+              if (j > 0) failed_indices += ", ";
+              failed_indices += std::to_string(failed_remove_vlr_indices[j]);
+            }
+
+            LASMessage(LAS_WARNING, "could not remove VLRs with indices [%s] from input file '%s'", failed_indices.c_str(), lasreadopener.get_file_name());
+          }
+        }
+
+        if (remove_vlr_user_id != nullptr && remove_vlr_record_id >= 0) {
+          if (!lasreader->header.remove_vlr(remove_vlr_user_id, remove_vlr_record_id)) {
+            LASMessage(LAS_WARNING, "could not remove VLR with user ID '%s' and record ID '%d' from input file '%s'", remove_vlr_user_id, remove_vlr_record_id, lasreadopener.get_file_name());
+          }
         }
 
         if (remove_variable_length_record_from != -1)
