@@ -3707,7 +3707,7 @@ bool GeoProjectionConverter::set_ProjectedCSTypeGeoKey(short value, char* descri
       sprintf(description, "user-defined");
     }
     return true;
-  } else if (set_epsg_code(value, description, source)) {
+  } else if (set_epsg_code(value, description, vertical_geokey, source)) {
     return true;
   }
   if (!disable_messages) LASMessage(LAS_SERIOUS_WARNING, "set_ProjectedCSTypeGeoKey: look-up for %d not implemented", value);
@@ -5387,7 +5387,7 @@ bool GeoProjectionConverter::set_state_plane_nad27_lcc(const char* zone, char* d
   int i = 0;
   while (state_plane_lcc_nad27_list[i].zone) {
     if (strcmp(zone, state_plane_lcc_nad27_list[i].zone) == 0) {
-      return set_epsg_code(state_plane_lcc_nad27_list[i].geokey, description, source, vertical_geokey);
+      return set_epsg_code(state_plane_lcc_nad27_list[i].geokey, description, vertical_geokey, source);
     }
     i++;
   }
@@ -5417,7 +5417,7 @@ bool GeoProjectionConverter::set_state_plane_nad83_lcc(const char* zone, char* d
   int i = 0;
   while (state_plane_lcc_nad83_list[i].zone) {
     if (strcmp(zone, state_plane_lcc_nad83_list[i].zone) == 0) {
-      return set_epsg_code(state_plane_lcc_nad83_list[i].geokey, description, source, vertical_geokey);
+      return set_epsg_code(state_plane_lcc_nad83_list[i].geokey, description, vertical_geokey, source);
     }
     i++;
   }
@@ -5447,7 +5447,7 @@ bool GeoProjectionConverter::set_state_plane_nad27_tm(const char* zone, char* de
   int i = 0;
   while (state_plane_tm_nad27_list[i].zone) {
     if (strcmp(zone, state_plane_tm_nad27_list[i].zone) == 0) {
-      return set_epsg_code(state_plane_tm_nad27_list[i].geokey, description, source, vertical_geokey);
+      return set_epsg_code(state_plane_tm_nad27_list[i].geokey, description, vertical_geokey, source);
     }
     i++;
   }
@@ -5476,7 +5476,7 @@ bool GeoProjectionConverter::set_state_plane_nad83_tm(const char* zone, char* de
   int i = 0;
   while (state_plane_tm_nad83_list[i].zone) {
     if (strcmp(zone, state_plane_tm_nad83_list[i].zone) == 0) {
-      return set_epsg_code(state_plane_tm_nad83_list[i].geokey, description, source, vertical_geokey);
+      return set_epsg_code(state_plane_tm_nad83_list[i].geokey, description, vertical_geokey, source);
     }
     i++;
   }
@@ -7374,7 +7374,7 @@ void GeoProjectionConverter::parse(int argc, char* argv[]) {
       if (code > 32767) {
         laserror("'%s' needs 1 argument: EPSG code but %u is not a valid code", argv[i], code);
       }
-      if (!set_epsg_code((short)code, 0, source)) {
+      if (!set_epsg_code((short)code, 0, vertical_geokey, source)) {
         laserror("unknown EPSG code in '%s %s'.", argv[i], argv[i + 1]);
       } else {
         LASMessage(LAS_VERBOSE, "using %s EPSG code %d", (source ? "projection" : "target projection"), code);

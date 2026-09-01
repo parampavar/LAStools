@@ -3645,7 +3645,7 @@ public:
 
           if (geoprojectionconverter.source_header_epsg > 0) {
             // create the PROJ object for the proj info query here
-            geoprojectionconverter.set_proj_crs_with_epsg(geoprojectionconverter.source_header_epsg, true);
+            geoprojectionconverter.set_proj_crs_with_epsg(geoprojectionconverter.source_header_epsg, geoprojectionconverter.source_header_vertical_epsg, true);
           } else {
             laserror("No valid CRS could be extracted from the header information of the source file.");
           }
